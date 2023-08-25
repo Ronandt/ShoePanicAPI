@@ -15,7 +15,7 @@ app.post("/api/v1/retailer/login", (req, res) => {
                 cred.password === req.body.password
         )
     ) {
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "User successfully logged in",
             data: {
@@ -43,12 +43,12 @@ app.post("/api/v1/retailer/changePassword", (req, res) => {
 
     if (userIndex !== -1 && newPassword !== "") {
         loginCredentials[userIndex].pwd = newPassword;
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Password changed successfully",
         });
     } else {
-        res.status(404).json({
+        return res.status(404).json({
             status: "error",
             message: "Username not found or empty password",
         });
@@ -66,14 +66,31 @@ app.post("/api/v1/retailer/resetPassword/:username", (req, res) => {
 
     if (userIndex !== -1) {
         loginCredentials[userIndex].pwd = "P@55w0rd"; // Reset password
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Password reset successfully.",
         });
     } else {
-        res.status(404).json({
+        return res.status(404).json({
             status: "error",
             message: "Username cannot be found for reset.",
+        });
+    }
+});
+
+
+app.post("/api/v1/retailer/createEvent", (req, res) => {
+    const { eventName } = req.body;
+    if (!specialEvents[eventName]) {
+        specialEvents[eventName] = [];
+        return res.status(201).json({
+            status: "success",
+            message: `Special event "${eventName}" created successfully.`
+        });
+    } else {
+        return res.status(400).json({
+            status: "error",
+            message: `Special event "${eventName}" already exists.`
         });
     }
 });
@@ -85,9 +102,9 @@ app.post("/api/v1/customer/login", (req, res) => {
     const user = customerLoginCredentials.find(cred => cred.username === username && cred.pwd === pwd);
 
     if (user) {
-        res.status(200).json({status: "success", message: "Login successful."});
+        return res.status(200).json({status: "success", message: "Login successful."});
     } else {
-        res.status(401).json({status: "error", message: "Invalid username or password."});
+        return res.status(401).json({status: "error", message: "Invalid username or password."});
     }
 });
 
@@ -95,10 +112,10 @@ app.post("/api/v1/customer/login", (req, res) => {
 app.post("/api/v1/customer/register", (req, res) => {
     const { username, pwd } = req.body;
     if (customerLoginCredentials.find(cred => cred.username === username)) {
-        res.status(400).json({status: "error", message: "Username is already registered."});
+        return res.status(400).json({status: "error", message: "Username is already registered."});
     } else {
         customerLoginCredentials.push({ username, pwd });
-        res.status(201).json({status:"error", message: "Registration successful."});
+        return res.status(201).json({status:"error", message: "Registration successful."});
     }
 });
 
@@ -113,7 +130,7 @@ app.post("/api/v1/customer/joinQueue", (req, res) => {
 
         const estimatedWaitTime = queueWaitTime * customerQueue.length;
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             message: "Joined the queue successfully.",
             data: {
@@ -121,8 +138,17 @@ app.post("/api/v1/customer/joinQueue", (req, res) => {
                 acceptedPurpose: purpose
             }
         });
-    } else {
-        res.status(401).json({
+    } 
+    
+    else if (mainQueue.length >= stock) {
+        return res.status(400).json({
+            status: "error",
+            message: "Shop is full. Please come back later.",
+        });
+     
+    }
+    else {
+        return res.status(401).json({
             status: "error",
             message: "Invalid credentials.",
         });

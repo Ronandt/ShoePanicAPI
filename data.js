@@ -12,3 +12,4 @@ let customerLoginCredentials = [
 
 const queueWaitTime = 5; // in minutes
 const customerQueue = [];
+const stock = 30
