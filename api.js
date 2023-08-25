@@ -78,6 +78,95 @@ app.post("/api/v1/retailer/resetPassword/:username", (req, res) => {
     }
 });
 
+// Route to customer login
+app.post("/api/v1/customer/login", (req, res) => {
+    const { username, pwd } = req.body;
+
+    const user = customerLoginCredentials.find(cred => cred.username === username && cred.pwd === pwd);
+
+    if (user) {
+        res.status(200).json({status: "success", message: "Login successful."});
+    } else {
+        res.status(401).json({status: "error", message: "Invalid username or password."});
+    }
+});
+
+// Route to customer registration
+app.post("/api/v1/customer/register", (req, res) => {
+    const { username, pwd } = req.body;
+    if (customerLoginCredentials.find(cred => cred.username === username)) {
+        res.status(400).json({status: "error", message: "Username is already registered."});
+    } else {
+        customerLoginCredentials.push({ username, pwd });
+        res.status(201).json({status:"error", message: "Registration successful."});
+    }
+});
+
+
+app.post("/api/v1/customer/joinQueue", (req, res) => {
+    const { username, purpose } = req.body;
+
+    const user = customerLoginCredentials.find(cred => cred.username === username);
+
+    if (user) {
+        customerQueue.push({ username, purpose, joinedAt: new Date() });
+
+        const estimatedWaitTime = queueWaitTime * customerQueue.length;
+
+        res.status(200).json({
+            status: "success",
+            message: "Joined the queue successfully.",
+            data: {
+                estimatedWaitTime: estimatedWaitTime,
+                acceptedPurpose: purpose
+            }
+        });
+    } else {
+        res.status(401).json({
+            status: "error",
+            message: "Invalid credentials.",
+        });
+    }
+});
+
+app.get("/api/v1/customer/queueStatus", (req, res) => {
+    const currentQueueLength = customerQueue.length;
+
+    const estimatedTimeToJoin = queueWaitTime * currentQueueLength;
+
+    res.status(200).json({
+        status: "success",
+        message: "Queue status retrieved successfully.",
+        data: {
+            queueLength: currentQueueLength,
+            estimatedTimeToJoin: estimatedTimeToJoin
+        }
+    });
+});
+
+
+
+app.post("/api/v1/customer/leaveQueue", (req, res) => {
+    const { username } = req.body;
+
+    const indexToRemove = customerQueue.findIndex(customer => customer.username === username);
+
+    if (indexToRemove !== -1) {
+        customerQueue.splice(indexToRemove, 1);
+
+        res.status(200).json({
+            status: "success",
+            message: "Removed from the queue successfully."
+        });
+    } else {
+        res.status(404).json({
+            status: "error",
+            message: "User not found in the queue.",
+        });
+    }
+});
+
+
 app.listen(port, () => {
     display(port);
 });
