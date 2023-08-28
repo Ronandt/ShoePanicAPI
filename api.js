@@ -79,21 +79,6 @@ app.post("/api/v1/retailer/resetPassword/:username", (req, res) => {
 });
 
 
-app.post("/api/v1/retailer/createEvent", (req, res) => {
-    const { eventName } = req.body;
-    if (!specialEvents[eventName]) {
-        specialEvents[eventName] = [];
-        return res.status(201).json({
-            status: "success",
-            message: `Special event "${eventName}" created successfully.`
-        });
-    } else {
-        return res.status(400).json({
-            status: "error",
-            message: `Special event "${eventName}" already exists.`
-        });
-    }
-});
 
 // Route to customer login
 app.post("/api/v1/customer/login", (req, res) => {
@@ -138,7 +123,7 @@ app.post("/api/v1/customer/joinQueue/:id", (req, res) => {
 
 app.post("/api/v1/retailer/addEvent", (req, res) => {
     if(queues.queues.findIndex(x => x.date == req.body.date) === -1) {
-        queues.queues.push({ id: queues.queues.length -1, "type": "Special", people: [], date: null, waitTime: 5, date: date, stock: req.body.stock})
+        queues.queues.push({ id: queues.queues.length -1, "type": "Special", people: [], waitTime: 5, date: req.body.date, stock: req.body.stock})
         return res.status(200).json({
             status: "success",
             message: "Event added",
@@ -284,42 +269,7 @@ app.post("/api/v1/customer/joinPhysicalQueue", (req, res) => {
 
 
 
-/*app.post("/api/v1/customer/joinQueue", (req, res) => {
-    const { username, purpose } = req.body;
 
-    const user = customerLoginCredentials.find(cred => cred.username === username);
-    if(req.query.type == "main") {
-
-    }
-    if (user) {
-        customerQueue.push({ username, purpose, joinedAt: new Date() });
-
-        const estimatedWaitTime = queueWaitTime * customerQueue.length;
-
-        return res.status(200).json({
-            status: "success",
-            message: "Joined the queue successfully.",
-            data: {
-                estimatedWaitTime: estimatedWaitTime,
-                acceptedPurpose: purpose
-            }
-        });
-    } 
-    
-    else if (mainQueue.length >= stock) {
-        return res.status(400).json({
-            status: "error",
-            message: "Shop is full. Please come back later.",
-        });
-     
-    }
-    else {
-        return res.status(401).json({
-            status: "error",
-            message: "Can't find user",
-        });
-    }
-});*/
 
 
 
