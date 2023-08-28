@@ -131,7 +131,7 @@ app.post("/api/v1/retailer/addEvent", (req, res) => {
     }
     return res.status(400).json({
         status: "error",
-        message: "Event already added today"
+        message: "Event already added on this date"
     })
 })
 
