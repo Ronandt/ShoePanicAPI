@@ -97,21 +97,6 @@ app.post("/api/v1/retailer/resetPassword/:username", (req, res) => {
 });
 
 
-app.post("/api/v1/retailer/createEvent", (req, res) => {
-    const { eventName } = req.body;
-    if (!specialEvents[eventName]) {
-        specialEvents[eventName] = [];
-        return res.status(201).json({
-            status: "success",
-            message: `Special event "${eventName}" created successfully.`
-        });
-    } else {
-        return res.status(400).json({
-            status: "error",
-            message: `Special event "${eventName}" already exists.`
-        });
-    }
-});
 
 // Route to customer login
 app.post("/api/v1/customer/login", (req, res) => {
@@ -144,83 +129,178 @@ app.post("/api/v1/customer/register", (req, res) => {
     if (customerLoginCredentials.find(cred => cred.username === username)) {
         return res.status(400).json({status: "error", message: "Username is already registered."});
     } else {
-        customerLoginCredentials.push({ username, pwd });
+        customerLoginCredentials.push({ username, pwd});
         return res.status(201).json({status:"error", message: "Registration successful."});
     }
 });
 
 
-app.post("/api/v1/customer/joinQueue", (req, res) => {
-    const { username, purpose } = req.body;
+app.post("/api/v1/customer/joinQueue/:id", (req, res) => {
+    const queueId = parseInt(req.params.id);  
+    const username = req.body.username;
+    const reason = req.body.reason;
 
-    const user = customerLoginCredentials.find(cred => cred.username === username);
+    if (isNaN(queueId) || queueId < 0 || queueId >= queues.queues.length) {
+        return res.status(400).json({status: "error", message: "Invalid queue ID"});
+    }
 
-    if (user) {
-        customerQueue.push({ username, purpose, joinedAt: new Date() });
-
-        const estimatedWaitTime = queueWaitTime * customerQueue.length;
-
-        return res.status(200).json({
-            status: "success",
-            message: "Joined the queue successfully.",
-            data: {
-                estimatedWaitTime: estimatedWaitTime,
-                acceptedPurpose: purpose
-            }
-        });
-    } 
+    queues.queues[queueId].people.push({"username": username, "reason": reason, "status": "Queueing"});
     
-    else if (mainQueue.length >= stock) {
-        return res.status(400).json({
-            status: "error",
-            message: "Shop is full. Please come back later.",
-        });
-     
-    }
-    else {
-        return res.status(401).json({
-            status: "error",
-            message: "Invalid credentials.",
-        });
-    }
+    return res.json({status: "success", message: "Joined queue successfully"});
 });
 
-app.get("/api/v1/customer/queueStatus", (req, res) => {
-    const currentQueueLength = customerQueue.length;
 
-    const estimatedTimeToJoin = queueWaitTime * currentQueueLength;
 
-    res.status(200).json({
+app.post("/api/v1/retailer/addEvent", (req, res) => {
+    if(queues.queues.findIndex(x => x.date == req.body.date) === -1) {
+        queues.queues.push({ id: queues.queues.length -1, "type": "Special", people: [], waitTime: 5, date: req.body.date, stock: req.body.stock})
+        return res.status(200).json({
+            status: "success",
+            message: "Event added",
+        })
+    }
+    return res.status(400).json({
+        status: "error",
+        message: "Event already added on this date"
+    })
+})
+
+app.post("/api/v1/retailer/setWaitingTime", (req, res) => {
+    const queueId = req.body.id;
+    const waitingTime = req.body.waitingTime;
+
+    if (isNaN(queueId) || queueId < 0 || queueId >= queues.queues.length) {
+        return res.status(400).json({ status: "error", message: "Invalid queue ID" });
+    }
+
+    queues.queues[queueId].waitTime = waitingTime;
+
+    return res.json({ status: "success", message: "Waiting time updated successfully" });
+});
+
+app.get("/api/v1/retailer/statistics", (req, res) => {
+    const mockStatistics = {
+        "date": "2023-08-25",
+        "statistics": {
+            "10:00 AM": 15,
+            "11:00 AM": 25,
+            "12:00 PM": 30,
+            "1:00 PM": 22,
+            "2:00 PM": 18,
+            "3:00 PM": 12,
+            "4:00 PM": 9,
+            "5:00 PM": 14,
+            "6:00 PM": 20,
+            "7:00 PM": 28,
+            "8:00 PM": 32,
+            "9:00 PM": 26,
+            "10:00 PM": 18,
+            "11:00 PM": 10
+        },
+        "longestQueueToday": {
+            "time": "8:00 PM",
+            "queueSize": 32
+        },
+        "shortestQueueToday": {
+            "time": "4:00 PM",
+            "queueSize": 9
+        },
+        "totalNumberOfPeopleToday": 380,
+        "specialEvent": true
+    };
+
+    return res.json({
         status: "success",
-        message: "Queue status retrieved successfully.",
+        message: "Queue statistics retrieved successfully",
+        data: mockStatistics
+    });
+});
+
+app.post("/api/v1/retailer/setPhysicalQueueEligibility", (req, res) => {
+    const queueId = req.body.id;
+    const usernameToTransfer = req.body.username;
+
+    if (isNaN(queueId) || queueId < 0 || queueId >= queues.queues.length) {
+        return res.status(400).json({ status: "error", message: "Invalid queue ID" });
+    }
+
+    const queueToUpdate = queues.queues[queueId];
+    const personToTransfer = queueToUpdate.people.find(person => person.username === usernameToTransfer);
+
+    if (!personToTransfer) {
+        return res.status(400).json({ status: "error", message: "Person not found in the queue" });
+    }
+
+    personToTransfer.status = "Physical"; // Update the status
+
+    return res.json({ status: "success", message: "User status is now eligible for physical queue" });
+});
+
+app.get("/api/v1/retailer/retrieveQueues", (req, res) => {
+   
+    return res.status(200).json({
+        status: "success",
+        message: "Events retrieved",
         data: {
-            queueLength: currentQueueLength,
-            estimatedTimeToJoin: estimatedTimeToJoin
+            queues: queues
         }
+    })
+
+})
+
+app.post("/api/v1/customer/removeFromQueue", (req, res) => {
+    const queueId = req.body.id;
+    const usernameToLeave = req.body.username;
+
+    if (isNaN(queueId) || queueId < 0 || queueId >= queues.queues.length) {
+        return res.status(400).json({ status: "error", message: "Invalid queue ID" });
+    }
+
+    const queueToUpdate = queues.queues[queueId];
+    const personIndex = queueToUpdate.people.findIndex(person => person.username === usernameToLeave);
+
+    if (personIndex === -1) {
+        return res.status(400).json({ status: "error", message: "Person not found in the queue" });
+    }
+
+    queueToUpdate.people.splice(personIndex, 1); // Remove the person from the queue
+
+    return res.json({ status: "success", message: "Successfully left the queue" });
+});
+
+app.post("/api/v1/customer/joinPhysicalQueue", (req, res) => {
+    const queueId = req.body.id;
+    const usernameToRemove = req.body.username;
+
+    if (isNaN(queueId) || queueId < 0 || queueId >= queues.queues.length) {
+        return res.status(400).json({ status: "error", message: "Invalid queue ID" });
+    }
+
+    const queueToUpdate = queues.queues[queueId];
+    const personIndex = queueToUpdate.people.findIndex(person => person.username === usernameToRemove);
+
+    if (personIndex === -1) {
+        return res.status(400).json({ status: "error", message: "Person not found in the queue" });
+    }
+
+    const personToRemove = queueToUpdate.people[personIndex];
+    
+    if (personToRemove.status !== 'Physical') {
+        return res.status(400).json({ status: "error", message: "Person's is not eligible to join physical queue" });
+    }
+
+    queueToUpdate.people.splice(personIndex, 1); // Remove the person from the queue
+
+    return res.json({
+        status: "success",
+        message: `${personToRemove.username} has successfully joined the physical queue`
     });
 });
 
 
 
-app.post("/api/v1/customer/leaveQueue", (req, res) => {
-    const { username } = req.body;
 
-    const indexToRemove = customerQueue.findIndex(customer => customer.username === username);
 
-    if (indexToRemove !== -1) {
-        customerQueue.splice(indexToRemove, 1);
-
-        res.status(200).json({
-            status: "success",
-            message: "Removed from the queue successfully."
-        });
-    } else {
-        res.status(404).json({
-            status: "error",
-            message: "User not found in the queue.",
-        });
-    }
-});
 
 
 app.listen(port, () => {
