@@ -7,12 +7,30 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+let loginCredentials = [
+    {username: "Retailer1", pwd: "P@55w0rd"},
+    {username: "Retailer2", pwd: "P@55w0rd"}
+]
+
+// Sample login credentials
+let customerLoginCredentials = [
+    { username: "Shopper1", pwd: "P@55w0rd" },
+    { username: "Shopper2", pwd: "P@55w0rd" }
+    // ... Add more credentials here
+];
+
+const queueWaitTime = 5; // in minutes
+const customerQueue = [];
+const stock = 30
+
 app.post("/api/v1/retailer/login", (req, res) => {
+    console.log(req.body.username + "Username")
+    console.log(req.body.password + "pwd")
     if (
         loginCredentials.some(
             (cred) =>
                 cred.username === req.body.username &&
-                cred.password === req.body.password
+                cred.pwd === req.body.password
         )
     ) {
         return res.status(200).json({
@@ -97,12 +115,24 @@ app.post("/api/v1/retailer/createEvent", (req, res) => {
 
 // Route to customer login
 app.post("/api/v1/customer/login", (req, res) => {
-    const { username, pwd } = req.body;
-
-    const user = customerLoginCredentials.find(cred => cred.username === username && cred.pwd === pwd);
-
+    const { username, password} = req.body;
+    console.log(req.body)
+    console.log(username)
+    console.log(password)
+    console.log(customerLoginCredentials[0].pwd == req.body.password)
+    console.log(customerLoginCredentials[0].username == req.body.username)
+    console.log(customerLoginCredentials[0].username )
+    console.log(customerLoginCredentials[0].pwd)
+    const user =customerLoginCredentials.find(cred => cred.username == req.body.username && cred.pwd == req.body.password);
+   console.log(user)
     if (user) {
-        return res.status(200).json({status: "success", message: "Login successful."});
+        return res.status(200).json({status: "success", message: "Login successful.", 
+        data: {
+            authenticatedUser: {
+                username: req.body.username,
+                password: req.body.password,
+            },
+        },});
     } else {
         return res.status(401).json({status: "error", message: "Invalid username or password."});
     }
