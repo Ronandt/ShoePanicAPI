@@ -19,8 +19,6 @@ let customerLoginCredentials = [
     // ... Add more credentials here
 ];
 
-const queueWaitTime = 5; // in minutes
-
 let statistics = {
     "date": "2023-08-25",
     "statistics": {
@@ -167,10 +165,35 @@ app.post("/api/v1/customer/register", (req, res) => {
         return res.status(400).json({status: "error", message: "Username is already registered."});
     } else {
         customerLoginCredentials.push({ username, pwd});
-        return res.status(201).json({status:"error", message: "Registration successful."});
+        return res.status(201).json({status:"success", message: "Registration successful."});
     }
 });
 
+app.post("/api/v1/customer/checkQueueStatus", (req, res) =>{
+    const { username } = req.body;
+
+    if (customerLoginCredentials.find(cred => cred.username === username)) {
+        for (let i = 0; i < queues.queues.length; i++) {
+            const queue = queues.queues[i];
+            const userStatus = queue.people.find(person => person.username === username);
+            if (userStatus) {
+                return res.status(200).json({
+                    status: "success",
+                    message: "User found.",
+                    data: {
+                        queueId: queue.id,
+                        status: userStatus.status,
+                        waitingTime: queues.queues[i].waitTime,
+                        position: queue.people.findIndex(person => person.username === username) + 1
+                    }
+                });
+            }
+        }
+        return res.status(404).json({ status: "error", message: "User not found in any queue" });
+    } else {
+        return res.status(404).json({ status: "error", message: "User not found" });
+    }
+});
 
 app.post("/api/v1/customer/joinQueue/:id", (req, res) => {
     const queueId = parseInt(req.params.id);  
@@ -204,7 +227,7 @@ app.post("/api/v1/retailer/addEvent", (req, res) => {
 
 app.post("/api/v1/retailer/setWaitingTime", (req, res) => {
     const queueId = req.body.id;
-    const waitingTime = req.body.waitingTime;
+    const waitingTime = parseInt(req.body.waitingTime);
 
     if (isNaN(queueId) || queueId < 0 || queueId >= queues.queues.length) {
         return res.status(400).json({ status: "error", message: "Invalid queue ID" });
@@ -218,22 +241,22 @@ app.post("/api/v1/retailer/setWaitingTime", (req, res) => {
 app.get("/api/v1/retailer/statistics", (req, res) => {
     const mockStatistics = {
         "date": "2023-08-25",
-        "statistics": {
-            "10:00 AM": 15,
-            "11:00 AM": 25,
-            "12:00 PM": 30,
-            "1:00 PM": 22,
-            "2:00 PM": 18,
-            "3:00 PM": 12,
-            "4:00 PM": 9,
-            "5:00 PM": 14,
-            "6:00 PM": 20,
-            "7:00 PM": 28,
-            "8:00 PM": 32,
-            "9:00 PM": 26,
-            "10:00 PM": 18,
-            "11:00 PM": 10
-        },
+        "statistics":  [
+            { time: "10:00 AM", amount: 15 },
+            { time: "11:00 AM", amount: 25 },
+            { time: "12:00 PM", amount: 30 },
+            { time: "1:00 PM", amount: 22 },
+            { time: "2:00 PM", amount: 18 },
+            { time: "3:00 PM", amount: 12 },
+            { time: "4:00 PM", amount: 9 },
+            { time: "5:00 PM", amount: 14 },
+            { time: "6:00 PM", amount: 20 },
+            { time: "7:00 PM", amount: 28 },
+            { time: "8:00 PM", amount: 32 },
+            { time: "9:00 PM", amount: 26 },
+            { time: "10:00 PM", amount: 18 },
+            { time: "11:00 PM", amount: 10 }
+        ],
         "longestQueueToday": {
             "time": "8:00 PM",
             "queueSize": 32

@@ -1,1 +1,1 @@
-resetPasswo
+statistics
