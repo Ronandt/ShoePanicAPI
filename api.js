@@ -135,28 +135,32 @@ app.post("/api/v1/retailer/resetPassword/:username", (req, res) => {
 
 // Route to customer login
 app.post("/api/v1/customer/login", (req, res) => {
-    const { username, password} = req.body;
-    console.log(req.body)
-    console.log(username)
-    console.log(password)
-    console.log(customerLoginCredentials[0].pwd == req.body.password)
-    console.log(customerLoginCredentials[0].username == req.body.username)
-    console.log(customerLoginCredentials[0].username )
-    console.log(customerLoginCredentials[0].pwd)
-    const user =customerLoginCredentials.find(cred => cred.username == req.body.username && cred.pwd == req.body.password);
-   console.log(user)
-    if (user) {
-        return res.status(200).json({status: "success", message: "Login successful.", 
-        data: {
-            authenticatedUser: {
-                username: req.body.username,
-                password: req.body.password,
-            },
-        },});
-    } else {
-        return res.status(401).json({status: "error", message: "Invalid username or password."});
-    }
+    const { username, password } = req.body;
+
+    // Introduce an artificial delay of 2 seconds
+    setTimeout(() => {
+        const user = customerLoginCredentials.find(cred => cred.username === username && cred.pwd === password);
+
+        if (user) {
+            return res.status(200).json({
+                status: "success",
+                message: "Login successful.",
+                data: {
+                    authenticatedUser: {
+                        username,
+                        password,
+                    },
+                },
+            });
+        } else {
+            return res.status(401).json({
+                status: "error",
+                message: "Invalid username or password.",
+            });
+        }
+    }, 2000); // Delay for 2 seconds (2000 milliseconds)
 });
+
 
 // Route to customer registration
 app.post("/api/v1/customer/register", (req, res) => {
